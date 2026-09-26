@@ -1,0 +1,114 @@
+/* Base styles and colour variables */
+:root{
+color-scheme:light;
+--background: #ffffff;
+--surface: #f7f7f5;
+--text: #202020;
+--muted: #666666;
+--border: #e5e5e3;
+}
+
+*{
+    box-sizing: border-box;
+}
+
+body{
+    margin:0;
+    padding:24px;
+    background: var(--background);
+    color: var(--text);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+
+    
+}
+
+h1,h2,p{
+    margin:0;
+    
+}
+
+h1{
+    font-size: 20px; 
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+h2{
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Layout */
+
+.app-header,
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.app-header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+main {
+  display: grid;
+  gap: 28px;
+  padding-block: 24px;
+}
+
+section {
+  display: grid;
+  gap: 12px;
+}
+
+/* Buttons and keyboard focus */
+
+button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  color: var(--muted);
+  background: var(--surface);
+  cursor: not-allowed;
+}
+
+/* Sender cards */
+
+/* Empty states and status messages */
+
+.empty-state {
+  padding: 20px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.app-footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
