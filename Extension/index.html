@@ -20,9 +20,35 @@
         <h2 id="senders-heading">Monitored senders</h2>
         <button id="add-sender-button" type="button">Add sender</button>
       </section>
-      <p class="empty-state">
-        Add a sender from an email to start monitoring.
-      </p>
+      
+        <form id="sender-form" hidden>
+            <label for="sender-email">Sender Email Address</label>
+            <input
+            id="sender-email"
+            name="senderEmail"
+            type="email"
+            placeholder="alerts@example.com"
+            maxlength="254"
+            required
+            aria-describedby="sender-help"
+            >
+
+            <p id="sender-help">
+                Enter the full email address you want to monitor
+            </p>
+
+            <section class="form-actions">
+                <button type="submit">Save Sender</button>
+                <button id="cancel-sender-button" type="button">Cancel</button>
+            </section>
+        </form>
+
+        <ul id="sender-list" aria-label="Monitored senders"></ul>
+
+        <p id="senders-empty-state" class="empty-state">
+            Add a sender from an email to start monitoring them
+        </p>
+
     </section>
 
     <section aria-labelledby="matches-heading">
