@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Toolkit</title>
+  <link rel="stylesheet" href="CSS/styles.css">
+  <script src="JS/popup.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Email Toolkit</h1>
+    <button id="scan-button" type="button" disabled>Scan page</button>
+  </header>
+
+  <main>
+    <section aria-labelledby="senders-heading">
+      <section class="section-header">
+        <h2 id="senders-heading">Monitored senders</h2>
+        <button id="add-sender-button" type="button" disabled>Add sender</button>
+      </section>
+      <p class="empty-state">
+        Add a sender from an email to start monitoring.
+      </p>
+    </section>
+
+    <section aria-labelledby="matches-heading">
+      <h2 id="matches-heading">Recent matches</h2>
+      <p class="empty-state">
+        Emails matching your rules will appear here.
+      </p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p id="status-message" role="status">Not connected to Gmail</p>
+  </footer>
+</body>
+</html>
