@@ -7,7 +7,7 @@ scanButton.addEventListener("click", () =>{
 })
 
 
-//interface elementing 
+
 // Interface elements
 const addSenderButton = document.querySelector("#add-sender-button");
 const senderForm = document.querySelector("#sender-form");
@@ -16,8 +16,70 @@ const cancelSenderButton = document.querySelector("#cancel-sender-button");
 const senderList = document.querySelector("#sender-list");
 const sendersEmptyState = document.querySelector("#senders-empty-state");
 
-// Temporary state: persistence comes next.
-const senders = [];
+// In-memory state is updated only after storage succeeds.
+let senders = [];
+let storageReady = false;
+let storageBusy = false;
+
+function updateControls(){
+  const disabled = !storageReady || storageBusy;
+
+  addSenderButton.disabled = disabled;
+  scanButton.disabled = disabled;
+
+  for (const control of senderForm.querySelectorAll("input, button")){
+    control.disabled = disabled;
+  }
+
+  for (const button of senderList.querySelectorAll("button")){
+    button.disabled = disabled;
+  }
+}
+
+async function initialisePopup(){
+  updateControls();
+  sendersEmptyState.hidden=true;
+  statusMessage.textContent="Loading senders...";
+
+  try{
+    senders = await loadSenders();
+    storageReady = true;
+    renderSenders();
+    statusMessage.textContent=
+    "Senders loaded. Gmail monitoring is not connected yet";
+  }catch(error){
+    console.error("Could not load senders", error);
+    statusMessage.textContent=
+    "Could not load senders. Reopen the popup to retry";
+  }finally{
+    updateControls();
+  }
+}
+
+async function commitSenders(nextSenders){
+  if (!storageReady || storageBusy){
+    return false;
+  }
+
+  storageBusy = true;
+  updateControls();
+  statusMessage.textContent = "Saving senders...";
+
+  try {
+    await saveSenders(nextSenders);
+
+    senders = nextSenders;
+    renderSenders();
+    return true;
+  }catch (error){
+    console.error("Could not save senders:", error);
+    statusMessage.textContent="Could not save senders. Your sender list is unchanged. Try Again";
+    return false;
+  }finally{
+    storageBusy=false;
+    updateControls();
+  }
+}
 
 function closeSenderForm() {
   senderForm.reset();
@@ -34,7 +96,7 @@ addSenderButton.addEventListener("click", () => {
 cancelSenderButton.addEventListener("click", closeSenderForm);
 
 senderForm.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
+  if (event.key === "Escape" && !storageBusy) {
     event.preventDefault();
     closeSenderForm();
   }
@@ -61,11 +123,20 @@ function renderSenders() {
     removeButton.textContent = "Remove";
     removeButton.setAttribute("aria-label", `Remove ${email}`);
 
-    removeButton.addEventListener("click", () => {
-      const index = senders.indexOf(email);
-      senders.splice(index, 1);
+    removeButton.addEventListener("click", async () => {
+      if (!storageReady || storageBusy) {
+        return;
+      }
 
-      renderSenders();
+      const index = senders.indexOf(email);
+      const nextSenders = senders.filter((sender) => sender !== email);
+      const saved = await commitSenders(nextSenders);
+
+      if (!saved) {
+        removeButton.focus();
+        return;
+      }
+
       statusMessage.textContent = `Removed ${email}.`;
 
       // The clicked button no longer exists, so restore useful focus.
@@ -82,9 +153,13 @@ function renderSenders() {
   }
 }
 
-senderForm.addEventListener("submit", (event) => {
+senderForm.addEventListener("submit",async (event) => {
   // Prevent the form from navigating away and reloading the popup.
   event.preventDefault();
+
+  if (!storageReady || storageBusy){
+    return;
+  }
 
   const email = senderEmailInput.value.trim();
   senderEmailInput.value = email;
@@ -113,12 +188,17 @@ senderForm.addEventListener("submit", (event) => {
     return;
   }
 
-  senders.push(email);
-  renderSenders();
+  const saved = await commitSenders([...senders, email]);
+
+  if (!saved) {
+    senderEmailInput.focus();
+    return;
+  }
+
   closeSenderForm();
 
   statusMessage.textContent =
-    `Added ${email} to this session. Gmail monitoring is not connected yet.`;
+    `Saved ${email}. Gmail monitoring is not connected yet.`;
 });
 
-renderSenders();
+initialisePopup();

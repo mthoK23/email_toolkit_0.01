@@ -3,6 +3,7 @@
     "name": "Email Toolkit",
     "version": "0.1.0",
     "description":"A personal toolkit for monitoring email senders and tracking matching emails ",
+    "permissions": ["storage"],
     "action":{
         "default_popup":"index.html",
         "default_title":"Email Toolkit"
