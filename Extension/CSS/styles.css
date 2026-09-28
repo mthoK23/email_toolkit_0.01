@@ -97,6 +97,56 @@ button:disabled {
 
 /* Sender cards */
 
+#sender-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sender-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  overflow-wrap: anywhere;
+}
+
+.sender-actions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.drag-handle {
+  padding: 4px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.drag-handle[draggable="true"] { cursor: grab; }
+.sender-card.dragging { opacity: 0.5; }
+
+.sender-card.drop-before::before,
+.sender-card.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--text);
+}
+
+.sender-card.drop-before::before { top: -7px; }
+.sender-card.drop-after::after { bottom: -7px; }
+
 /* Empty states and status messages */
 
 .empty-state {

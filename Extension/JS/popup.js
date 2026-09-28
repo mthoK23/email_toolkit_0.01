@@ -20,6 +20,18 @@ const sendersEmptyState = document.querySelector("#senders-empty-state");
 let senders = [];
 let storageReady = false;
 let storageBusy = false;
+let draggedSender = null;
+
+function clearDragFeedback() {
+  for (const card of senderList.children) {
+    card.classList.remove("drop-before", "drop-after", "dragging");
+  }
+}
+
+function finishDrag() {
+  draggedSender = null;
+  clearDragFeedback();
+}
 
 function updateControls(){
   const disabled = !storageReady || storageBusy;
@@ -32,7 +44,10 @@ function updateControls(){
   }
 
   for (const button of senderList.querySelectorAll("button")){
-    button.disabled = disabled;
+    button.disabled = disabled|| button.dataset.atBoundary ==="true";
+  }
+  for (const handle of senderList.querySelectorAll(".drag-handle")) {
+    handle.draggable = !disabled;
   }
 }
 
@@ -107,6 +122,49 @@ senderEmailInput.addEventListener("input", () => {
   senderEmailInput.setCustomValidity("");
 });
 
+async function moveSender(email, targetIndex, direction){
+  if (!storageReady || storageBusy){
+    return;
+  }
+
+  const currentIndex = senders.indexOf(email);
+
+  if ( 
+    currentIndex === -1 ||
+    !Number.isInteger(targetIndex) ||
+    targetIndex<0 ||
+    targetIndex >= senders.length ||
+    currentIndex === targetIndex
+  ){
+    return;
+  }
+
+  const nextSenders = [...senders];
+
+  nextSenders.splice(currentIndex, 1);
+  nextSenders.splice(targetIndex, 0, email);
+
+  const saved = await commitSenders(nextSenders);
+  const focusIndex = saved ? targetIndex : currentIndex;
+  const card = senderList.children[focusIndex];
+
+  const preferredButton = card.querySelector(
+    `[data-direction="${direction}"]`
+  );
+
+  const focusTarget =
+  preferredButton && !preferredButton.disabled
+  ? preferredButton
+  :card.querySelector("button:not(:disabled)");
+
+  focusTarget?.focus();
+
+  if (saved){
+    statusMessage.textContent=
+    `Moved ${email} to position ${targetIndex+1} of ${senders.length}.`;
+  }
+}
+
 function renderSenders() {
   senderList.replaceChildren();
   sendersEmptyState.hidden = senders.length > 0;
@@ -114,6 +172,60 @@ function renderSenders() {
   for (const email of senders) {
     const item = document.createElement("li");
     item.className = "sender-card";
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "⠿";
+    handle.title = "Drag to reorder, or use Move up and Move down";
+    handle.setAttribute("aria-hidden", "true");
+    handle.draggable = storageReady && !storageBusy;
+
+    handle.addEventListener("dragstart", (event) => {
+      if (!storageReady || storageBusy || !event.dataTransfer) {
+        event.preventDefault();
+        return;
+      }
+      draggedSender = email;
+      event.dataTransfer.effectAllowed = "move";
+      // Only an internal marker goes into the drag payload, not an address.
+      event.dataTransfer.setData("text/plain", "email-toolkit-sender");
+      item.classList.add("dragging");
+    });
+    handle.addEventListener("dragend", finishDrag);
+
+    item.addEventListener("dragover", (event) => {
+      if (draggedSender === null || !storageReady || storageBusy) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      for (const card of senderList.children) {
+        card.classList.remove("drop-before", "drop-after");
+      }
+      if (draggedSender === email) return;
+      const bounds = item.getBoundingClientRect();
+      const before = event.clientY < bounds.top + bounds.height / 2;
+      item.classList.add(before ? "drop-before" : "drop-after");
+    });
+
+    item.addEventListener("dragleave", (event) => {
+      if (!item.contains(event.relatedTarget)) {
+        item.classList.remove("drop-before", "drop-after");
+      }
+    });
+
+    item.addEventListener("drop", (event) => {
+      if (draggedSender === null || !storageReady || storageBusy) return;
+      event.preventDefault();
+      const source = draggedSender;
+      const fromIndex = senders.indexOf(source);
+      const hoveredIndex = senders.indexOf(email);
+      const bounds = item.getBoundingClientRect();
+      const before = event.clientY < bounds.top + bounds.height / 2;
+      // Convert a gap in the original list to an index after removal.
+      let targetIndex = hoveredIndex + (before ? 0 : 1);
+      if (fromIndex < targetIndex) targetIndex -= 1;
+      finishDrag();
+      if (source !== email) moveSender(source, targetIndex, "drag");
+    });
 
     const address = document.createElement("span");
     address.textContent = email;
@@ -141,14 +253,43 @@ function renderSenders() {
 
       // The clicked button no longer exists, so restore useful focus.
       const nextButton =
-        senderList.children[index]?.querySelector("button");
+        senderList.children[index]?.querySelector("button:not(:disabled)");
       const previousButton =
-        senderList.children[index - 1]?.querySelector("button");
+        senderList.children[index - 1]?.querySelector("button:not(:disabled)");
 
       (nextButton ?? previousButton ?? addSenderButton).focus();
     });
 
-    item.append(address, removeButton);
+    const index = senders.indexOf(email);
+
+const upButton = document.createElement("button");
+upButton.type = "button";
+upButton.textContent = "Move up";
+upButton.dataset.direction = "up";
+upButton.dataset.atBoundary = String(index === 0);
+upButton.disabled = index === 0;
+upButton.setAttribute("aria-label", `Move ${email} up`);
+
+upButton.addEventListener("click", () => {
+  moveSender(email, senders.indexOf(email) - 1, "up");
+});
+
+const downButton = document.createElement("button");
+downButton.type = "button";
+downButton.textContent = "Move down";
+downButton.dataset.direction = "down";
+downButton.dataset.atBoundary = String(index === senders.length - 1);
+downButton.disabled = index === senders.length - 1;
+downButton.setAttribute("aria-label", `Move ${email} down`);
+
+downButton.addEventListener("click", () => {
+  moveSender(email, senders.indexOf(email) + 1, "down");
+});
+
+const actions = document.createElement("div");
+actions.className = "sender-actions";
+actions.append(upButton, downButton, removeButton);
+item.append(handle, address, actions);
     senderList.append(item);
   }
 }

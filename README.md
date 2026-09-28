@@ -18,6 +18,8 @@ Implemented:
 - Preserve the current list when saving fails; keep editing disabled if loading fails.
 - Keyboard form submission, Escape/Cancel, and focus restoration after actions.
 - Render sender addresses as text rather than HTML.
+- Reorder senders with Move up/Move down or by dragging the dotted handle.
+- Show an insertion line above or below a target card and save the resulting order.
 
 The **Scan page** button currently only updates a status message. The recent matches area is a placeholder. Saving a sender does not yet start monitoring Gmail.
 
@@ -99,6 +101,10 @@ Use sample addresses rather than personal data when testing.
 | Navigate using Tab and activate buttons with Enter | Controls are usable with a visible button focus outline. |
 | Remove a sender, then reopen | The removed entry stays removed. |
 | Remove the final sender | The empty-state message returns. |
+| Move senders with Move up/Move down | Order changes and focus remains on an enabled action for the moved sender. |
+| Drag a dotted handle above or below another card | An insertion line previews the drop; releasing saves the new order. |
+| Reopen after reordering | The saved order remains. |
+| Cancel a drag or drop onto the same card | Order stays unchanged. |
 | Click Scan page | A message explains that Gmail reading is not connected. |
 
 Failure-path checks still need deliberate testing: a load failure should block editing and show an error; a save failure should retain the previous list and allow retrying. These paths are implemented, but are not covered by an automated test suite yet.
@@ -119,6 +125,7 @@ These check JavaScript syntax only. They do not test browser APIs, rendering, or
 - JavaScript syntax checks passed after the storage wiring was completed.
 - Manual persistence testing in Edge was reported working by the project owner.
 - The full checklist and storage failure scenarios have not been independently verified.
+- A mocked DOM/storage check passed for keyboard moves, failed-save order preservation, busy-state reset, and all 18 combinations of source card, target card, and drop half in a three-sender list. Native Edge drag behaviour still requires manual verification.
 
 ## Troubleshooting
 
@@ -129,7 +136,7 @@ These check JavaScript syntax only. They do not test browser APIs, rendering, or
 
 ## Next milestones
 
-1. Sender reordering using drag-and-drop and keyboard-accessible Move up/Move down buttons, with persisted order.
+1. Verify native drag-and-drop and keyboard reordering in Edge using the checklist above.
 2. Optional subject-keyword rules and matching tests using sample emails.
 3. Gmail page reading to extract a sender and subject from an opened email.
 4. Recent matches and notifications.
