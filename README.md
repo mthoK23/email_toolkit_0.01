@@ -12,6 +12,7 @@ Implemented:
 
 - Manifest V3 extension with a black-and-white HTML/CSS popup.
 - Add and remove sender email addresses.
+- Add and edit an optional subject-contains rule (up to 200 characters); blank means any subject. Matching execution is still planned.
 - Required email input, length checks, and case-insensitive duplicate detection.
 - Save sender changes in extension local storage and load them on popup startup.
 - Loading and saving messages, with controls disabled during storage operations.
@@ -47,11 +48,12 @@ Extension/
     styles.css        Shared interface styles
   JS/
     storage.js        Validate, load, and save sender data
+    sender-model.js   Convert legacy addresses and validate sender records
     popup.js          Interface events, state, and rendering
 README.md
 ```
 
-`storage.js` loads before `popup.js`, using deferred scripts. The storage functions are currently shared through ordinary scripts, rather than JavaScript modules.
+Scripts load in this order: `storage.js`, `sender-model.js`, then `popup.js`, using deferred scripts. Functions are currently shared through ordinary scripts rather than JavaScript modules.
 
 ## How sender storage works
 
@@ -66,13 +68,17 @@ Data is stored in `chrome.storage.local` under the key `monitoredSenders`:
 ```json
 {
   "monitoredSenders": [
-    "alerts@example.com",
-    "careers@example.org"
+    { "email": "alerts@example.com", "subjectContains": "application" },
+    { "email": "careers@example.org", "subjectContains": "" }
   ]
 }
 ```
 
 Addresses retain their entered capitalisation; duplicate comparison ignores case. Stored data is validated on both loading and saving. Invalid stored data causes a loading error instead of silently being overwritten.
+
+Legacy lists of address strings load as records with blank rules, preserving order. Loading does not write to storage; the next successful change saves the new record format. Reordering moves the address and its rule together. Edit rule changes the subject filter while keeping the address fixed.
+
+After this change, manually verify adding and editing a rule, cancelling an edit, clearing a rule, reopening the popup, and reordering with rules attached. Mocked checks passed for legacy conversion without writes, record persistence, invalid/duplicate rejection, rule-preserving reorder, and save-failure preservation; native Edge interaction still needs checking.
 
 The busy flag prevents overlapping saves within a single popup. Coordination between multiple simultaneously open extension views is not implemented.
 
@@ -115,6 +121,7 @@ With Node.js installed, run these from the repository root:
 
 ```sh
 node --check Extension/JS/storage.js
+node --check Extension/JS/sender-model.js
 node --check Extension/JS/popup.js
 ```
 

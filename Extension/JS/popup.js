@@ -12,6 +12,8 @@ scanButton.addEventListener("click", () =>{
 const addSenderButton = document.querySelector("#add-sender-button");
 const senderForm = document.querySelector("#sender-form");
 const senderEmailInput = document.querySelector("#sender-email");
+const senderSubjectInput = document.querySelector("#sender-subject");
+let editingEmail = null;
 const cancelSenderButton = document.querySelector("#cancel-sender-button");
 const senderList = document.querySelector("#sender-list");
 const sendersEmptyState = document.querySelector("#senders-empty-state");
@@ -97,13 +99,20 @@ async function commitSenders(nextSenders){
 }
 
 function closeSenderForm() {
+  const previousEmail = editingEmail;
+  editingEmail = null;
   senderForm.reset();
+  senderEmailInput.readOnly = false;
   senderEmailInput.setCustomValidity("");
+  senderSubjectInput.setCustomValidity("");
   senderForm.hidden = true;
-  addSenderButton.focus();
+  const index = senders.findIndex((sender) => sender.email === previousEmail);
+  const editButton = senderList.children[index]?.querySelector(".edit-rule-button");
+  (editButton ?? addSenderButton).focus();
 }
 
 addSenderButton.addEventListener("click", () => {
+  closeSenderForm();
   senderForm.hidden = false;
   senderEmailInput.focus();
 });
@@ -121,13 +130,16 @@ senderForm.addEventListener("keydown", (event) => {
 senderEmailInput.addEventListener("input", () => {
   senderEmailInput.setCustomValidity("");
 });
+senderSubjectInput.addEventListener("input", () => {
+  senderSubjectInput.setCustomValidity("");
+});
 
 async function moveSender(email, targetIndex, direction){
   if (!storageReady || storageBusy){
     return;
   }
 
-  const currentIndex = senders.indexOf(email);
+  const currentIndex = senders.findIndex((sender) => sender.email === email);
 
   if ( 
     currentIndex === -1 ||
@@ -141,8 +153,8 @@ async function moveSender(email, targetIndex, direction){
 
   const nextSenders = [...senders];
 
-  nextSenders.splice(currentIndex, 1);
-  nextSenders.splice(targetIndex, 0, email);
+  const [movedSender] = nextSenders.splice(currentIndex, 1);
+  nextSenders.splice(targetIndex, 0, movedSender);
 
   const saved = await commitSenders(nextSenders);
   const focusIndex = saved ? targetIndex : currentIndex;
@@ -169,7 +181,8 @@ function renderSenders() {
   senderList.replaceChildren();
   sendersEmptyState.hidden = senders.length > 0;
 
-  for (const email of senders) {
+  for (const sender of senders) {
+    const email = sender.email;
     const item = document.createElement("li");
     item.className = "sender-card";
 
@@ -216,8 +229,8 @@ function renderSenders() {
       if (draggedSender === null || !storageReady || storageBusy) return;
       event.preventDefault();
       const source = draggedSender;
-      const fromIndex = senders.indexOf(source);
-      const hoveredIndex = senders.indexOf(email);
+      const fromIndex = senders.findIndex((sender) => sender.email === source);
+      const hoveredIndex = senders.findIndex((sender) => sender.email === email);
       const bounds = item.getBoundingClientRect();
       const before = event.clientY < bounds.top + bounds.height / 2;
       // Convert a gap in the original list to an index after removal.
@@ -229,6 +242,28 @@ function renderSenders() {
 
     const address = document.createElement("span");
     address.textContent = email;
+    const details = document.createElement("div");
+    const rule = document.createElement("p");
+    rule.className = "sender-rule";
+    rule.textContent = sender.subjectContains
+      ? `Subject contains: ${sender.subjectContains}` : "Any subject";
+    details.append(address, rule);
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "edit-rule-button";
+    editButton.textContent = "Edit rule";
+    editButton.setAttribute("aria-label", `Edit rule for ${email}`);
+    editButton.addEventListener("click", () => {
+      if (!storageReady || storageBusy) return;
+      closeSenderForm();
+      editingEmail = email;
+      senderEmailInput.value = email;
+      senderEmailInput.readOnly = true;
+      senderSubjectInput.value = sender.subjectContains;
+      senderForm.hidden = false;
+      senderSubjectInput.focus();
+    });
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
@@ -240,8 +275,8 @@ function renderSenders() {
         return;
       }
 
-      const index = senders.indexOf(email);
-      const nextSenders = senders.filter((sender) => sender !== email);
+      const index = senders.findIndex((sender) => sender.email === email);
+      const nextSenders = senders.filter((sender) => sender.email !== email);
       const saved = await commitSenders(nextSenders);
 
       if (!saved) {
@@ -250,6 +285,7 @@ function renderSenders() {
       }
 
       statusMessage.textContent = `Removed ${email}.`;
+      if (editingEmail === email) closeSenderForm();
 
       // The clicked button no longer exists, so restore useful focus.
       const nextButton =
@@ -260,7 +296,7 @@ function renderSenders() {
       (nextButton ?? previousButton ?? addSenderButton).focus();
     });
 
-    const index = senders.indexOf(email);
+    const index = senders.findIndex((sender) => sender.email === email);
 
 const upButton = document.createElement("button");
 upButton.type = "button";
@@ -271,7 +307,7 @@ upButton.disabled = index === 0;
 upButton.setAttribute("aria-label", `Move ${email} up`);
 
 upButton.addEventListener("click", () => {
-  moveSender(email, senders.indexOf(email) - 1, "up");
+  moveSender(email, senders.findIndex((sender) => sender.email === email) - 1, "up");
 });
 
 const downButton = document.createElement("button");
@@ -283,13 +319,13 @@ downButton.disabled = index === senders.length - 1;
 downButton.setAttribute("aria-label", `Move ${email} down`);
 
 downButton.addEventListener("click", () => {
-  moveSender(email, senders.indexOf(email) + 1, "down");
+  moveSender(email, senders.findIndex((sender) => sender.email === email) + 1, "down");
 });
 
 const actions = document.createElement("div");
 actions.className = "sender-actions";
-actions.append(upButton, downButton, removeButton);
-item.append(handle, address, actions);
+actions.append(upButton, downButton, editButton, removeButton);
+item.append(handle, details, actions);
     senderList.append(item);
   }
 }
@@ -306,6 +342,11 @@ senderForm.addEventListener("submit",async (event) => {
   senderEmailInput.value = email;
   senderEmailInput.setCustomValidity("");
 
+  senderSubjectInput.setCustomValidity("");
+  if (senderSubjectInput.value.length > 200) {
+    senderSubjectInput.setCustomValidity("Use 200 characters or fewer.");
+  }
+
   if (email.length > 254) {
     senderEmailInput.setCustomValidity(
       "Use an email address of 254 characters or fewer."
@@ -318,7 +359,7 @@ senderForm.addEventListener("submit",async (event) => {
 
   // For this tool, treat differently capitalised addresses as duplicates.
   const alreadyExists = senders.some(
-    (sender) => sender.toLowerCase() === email.toLowerCase()
+    (sender) => sender.email !== editingEmail && sender.email.toLowerCase() === email.toLowerCase()
   );
 
   if (alreadyExists) {
@@ -329,7 +370,11 @@ senderForm.addEventListener("submit",async (event) => {
     return;
   }
 
-  const saved = await commitSenders([...senders, email]);
+  const record = { email, subjectContains: senderSubjectInput.value.trim() };
+  const nextSenders = editingEmail === null
+    ? [...senders, record]
+    : senders.map((sender) => sender.email === editingEmail ? record : sender);
+  const saved = await commitSenders(nextSenders);
 
   if (!saved) {
     senderEmailInput.focus();
@@ -343,3 +388,4 @@ senderForm.addEventListener("submit",async (event) => {
 });
 
 initialisePopup();
+

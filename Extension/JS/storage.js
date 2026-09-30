@@ -44,14 +44,13 @@ function validateSenders(senders){
             return[];
         }
 
-        validateSenders(storedSenders);
-        return storedSenders;
+        return normaliseSenderRecords(storedSenders);
     }
 
     async function saveSenders(senders){
-        validateSenders(senders);
+        const records = normaliseSenderRecords(senders);
 
         await chrome.storage.local.set({
-            [SENDERS_STORAGE_KEY]: senders
+            [SENDERS_STORAGE_KEY]: records
         });
 }

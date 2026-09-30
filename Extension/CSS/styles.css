@@ -13,6 +13,11 @@ color-scheme:light;
 }
 
 body{
+    /* Give the extension popup an explicit size instead of content sizing. */
+    width: 480px;
+    min-height: 400px;
+    max-height: 580px;
+    overflow-y: auto;
     margin:0;
     padding:24px;
     background: var(--background);
@@ -70,6 +75,7 @@ section {
 /* Buttons and keyboard focus */
 
 button {
+  white-space: nowrap;
   padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -97,6 +103,30 @@ button:disabled {
 
 /* Sender cards */
 
+#sender-form:not([hidden]) {
+  display: grid;
+  gap: 10px;
+}
+
+#sender-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+#sender-form input:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+.sender-rule, #subject-help {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 #sender-list {
   display: grid;
   gap: 10px;
@@ -120,6 +150,12 @@ button:disabled {
 
 .sender-actions {
   grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.form-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
