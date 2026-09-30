@@ -1,41 +1,3 @@
-function normaliseSenderRecords(storedSenders){
-    if (!Array.isArray(storedSenders)){
-        throw new Error("Stored senders must be a list");
-    }
-
-    const records = storedSenders.map((sender)=>{
-        if (typeof sender === "string"){
-            return {
-                email:sender,
-                subjectContains:""
-            };
-        }
-        
-        if (
-            sender === null ||
-            typeof sender !== "object" ||
-            Array.isArray(sender)
-        ){
-            throw new Error("Invalid sender record>");
-        }
-
-        if (
-            typeof sender.subjectContains !== "string" ||
-            sender.subjectConains.Length>200
-        ){
-            throw new Error("Invalid subject filter.");
-        }
-
-        return{
-            email: sender.email,
-            subjectContaines: sender.subjectContains.trim()
-        };
-    });
-
-    validateSenders(records.map((sender)=>sender.email));
-
-    return records;
-}
 // Accept the original address-only format without writing during loading.
 function normaliseSenderRecords(storedSenders) {
   if (!Array.isArray(storedSenders)) throw new Error("Stored senders must be a list.");
@@ -52,3 +14,4 @@ function normaliseSenderRecords(storedSenders) {
   validateSenders(records.map((sender) => sender.email));
   return records;
 }
+

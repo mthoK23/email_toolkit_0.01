@@ -17,6 +17,42 @@ let editingEmail = null;
 const cancelSenderButton = document.querySelector("#cancel-sender-button");
 const senderList = document.querySelector("#sender-list");
 const sendersEmptyState = document.querySelector("#senders-empty-state");
+const previewForm = document.querySelector("#preview-form");
+const previewFrom = document.querySelector("#preview-from");
+const previewSubject = document.querySelector("#preview-subject");
+const previewResult = document.querySelector("#preview-result");
+
+function resetPreview() {
+  previewResult.textContent = "Enter a sample to test your saved rules.";
+}
+
+previewForm.addEventListener("input", () => {
+  previewFrom.setCustomValidity("");
+  previewSubject.setCustomValidity("");
+  resetPreview();
+});
+
+previewForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!storageReady || storageBusy) return;
+  previewFrom.value = previewFrom.value.trim();
+  previewFrom.setCustomValidity(previewFrom.value.length > 254 ? "Use 254 characters or fewer." : "");
+  previewSubject.setCustomValidity(previewSubject.value.length > 1000 ? "Use 1,000 characters or fewer." : "");
+  if (!previewForm.reportValidity()) return;
+  try {
+    const result = matchEmail(senders, { from: previewFrom.value, subject: previewSubject.value });
+    previewResult.textContent = result.matched
+      ? result.reason === "any-subject"
+        ? "Match — this saved sender accepts any subject."
+        : "Match — the sender and subject match the saved rule."
+      : result.reason === "sender"
+        ? "No match — this exact sender address is not in your saved list."
+        : "No match — the subject does not contain the saved text.";
+  } catch (error) {
+    console.error("Could not preview rule:", error);
+    previewResult.textContent = "Could not check this sample. Check the inputs and try again.";
+  }
+});
 
 // In-memory state is updated only after storage succeeds.
 let senders = [];
@@ -42,6 +78,9 @@ function updateControls(){
   scanButton.disabled = disabled;
 
   for (const control of senderForm.querySelectorAll("input, button")){
+    control.disabled = disabled;
+  }
+  for (const control of previewForm.querySelectorAll("input, button")) {
     control.disabled = disabled;
   }
 
@@ -87,6 +126,7 @@ async function commitSenders(nextSenders){
 
     senders = nextSenders;
     renderSenders();
+    resetPreview();
     return true;
   }catch (error){
     console.error("Could not save senders:", error);

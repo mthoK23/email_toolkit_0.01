@@ -103,12 +103,12 @@ button:disabled {
 
 /* Sender cards */
 
-#sender-form:not([hidden]) {
+#sender-form:not([hidden]), #preview-form {
   display: grid;
   gap: 10px;
 }
 
-#sender-form input {
+#sender-form input, #preview-form input {
   width: 100%;
   min-width: 0;
   padding: 8px;
@@ -117,14 +117,21 @@ button:disabled {
   font: inherit;
 }
 
-#sender-form input:focus-visible {
+#sender-form input:focus-visible, #preview-form input:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 3px;
 }
 
-.sender-rule, #subject-help {
+.sender-rule, #subject-help, .help-text {
   color: var(--muted);
   font-size: 12px;
+}
+
+#preview-result {
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 #sender-list {

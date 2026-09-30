@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="CSS/styles.css">
   <script src="JS/storage.js" defer></script>
   <script src="JS/sender-model.js" defer></script>
+  <script src="JS/matching.js" defer></script>
   <script src="JS/popup.js" defer></script>
 
 </head>
@@ -42,7 +43,7 @@
             <label for="sender-subject">Subject contains (optional)</label>
             <input id="sender-subject" name="subjectContains" type="text"
               maxlength="200" placeholder="application" aria-describedby="subject-help">
-            <p id="subject-help">Leave blank for any subject. Matching will ignore capitalisation.</p>
+            <p id="subject-help">Leave blank for any subject. Matches literal text anywhere in the subject, ignoring capitalisation.</p>
 
             <section class="form-actions">
                 <button type="submit">Save Sender</button>
@@ -56,6 +57,19 @@
             Add a sender from an email to start monitoring them
         </p>
 
+    </section>
+
+    <section aria-labelledby="preview-heading">
+      <h2 id="preview-heading">Test a rule</h2>
+      <p class="help-text">Try a sample email against your saved rules. Samples are not saved or sent anywhere.</p>
+      <form id="preview-form">
+        <label for="preview-from">Sender email address</label>
+        <input id="preview-from" type="email" required maxlength="254" placeholder="alerts@example.com">
+        <label for="preview-subject">Sample subject (optional)</label>
+        <input id="preview-subject" type="text" maxlength="1000" placeholder="Your application was received">
+        <button type="submit">Check match</button>
+      </form>
+      <p id="preview-result" role="status" aria-atomic="true">Enter a sample to test your saved rules.</p>
     </section>
 
     <section aria-labelledby="matches-heading">

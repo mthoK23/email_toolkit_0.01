@@ -12,7 +12,8 @@ Implemented:
 
 - Manifest V3 extension with a black-and-white HTML/CSS popup.
 - Add and remove sender email addresses.
-- Add and edit an optional subject-contains rule (up to 200 characters); blank means any subject. Matching execution is still planned.
+- Add and edit an optional subject-contains rule (up to 200 characters); blank means any subject.
+- Test saved rules against a sample sender and subject, with a match/no-match explanation. Samples are never saved or sent.
 - Required email input, length checks, and case-insensitive duplicate detection.
 - Save sender changes in extension local storage and load them on popup startup.
 - Loading and saving messages, with controls disabled during storage operations.
@@ -49,11 +50,12 @@ Extension/
   JS/
     storage.js        Validate, load, and save sender data
     sender-model.js   Convert legacy addresses and validate sender records
+    matching.js       Pure sender/subject matching logic
     popup.js          Interface events, state, and rendering
 README.md
 ```
 
-Scripts load in this order: `storage.js`, `sender-model.js`, then `popup.js`, using deferred scripts. Functions are currently shared through ordinary scripts rather than JavaScript modules.
+Scripts load in this order: `storage.js`, `sender-model.js`, `matching.js`, then `popup.js`, using deferred scripts. Functions are currently shared through ordinary scripts rather than JavaScript modules.
 
 ## How sender storage works
 
@@ -113,7 +115,41 @@ Use sample addresses rather than personal data when testing.
 | Cancel a drag or drop onto the same card | Order stays unchanged. |
 | Click Scan page | A message explains that Gmail reading is not connected. |
 
-Failure-path checks still need deliberate testing: a load failure should block editing and show an error; a save failure should retain the previous list and allow retrying. These paths are implemented, but are not covered by an automated test suite yet.
+Failure-path checks use simulated storage failures in the automated suite. Native Edge interaction still needs manual verification.
+
+### Rule preview
+
+Save a sender with `application` as its subject filter. In **Test a rule**, use the same address with `Your APPLICATION was received`: expect a match. Change the subject to `New vacancy`: expect no match. Changing the sample or saving a rule clears the previous result. Unsaved edits are not used in matching.
+
+### Automated checks
+
+From the repository root, with Node.js installed (no packages required):
+
+```sh
+node --test tests/toolkit.test.cjs
+```
+
+The suite covers matching, legacy data conversion, invalid data, add/edit/remove/reload, preview invalidation, all 18 three-card drop positions, failed storage operations, duplicate addresses, boundary moves, and cancelling an edit. Six test groups pass. The DOM and storage are mocked: browser validation, native focus, visual layout, and actual dragging still need Edge testing.
+
+### Edge cases and current decisions
+
+| Case | Behaviour or limitation |
+| --- | --- |
+| Blank or whitespace-only rule | Matches any subject, including an empty subject, for the saved sender. |
+| Blank sample subject with a nonblank rule | No match. |
+| Different address casing | Matches; sender comparison ignores case by design. |
+| Similar domains or plus-address aliases | No match unless the exact address is saved; aliases are not merged. |
+| `job` versus `jobs` | Matches because the rule is a substring, not a whole word. |
+| Punctuation such as `.*` | Literal text, not a regular expression. |
+| Accents and Unicode | NFC normalisation handles equivalent composed/decomposed accents. Accents remain significant; full locale-specific case folding is not implemented. |
+| HTML-looking input | Treated as plain text, never executed as markup. |
+| Missing or corrupt stored rules | Loading fails without overwriting stored data. |
+| Save fails | Current list/order remains unchanged and retry is available. |
+| Popup closes during save | Reopen to check stored state; a closed popup cannot report completion. |
+| Several extension views edit at once | Not coordinated; a later save may overwrite an earlier change. |
+| Very long input | Rules limited to 200 characters and preview subjects to 1,000; larger real subjects will need an explicit policy during Gmail integration. |
+| Sender spoofing or display names | Exact-address matching is not authentication. The future Gmail reader must extract the actual address, not just a display name. |
+| New Gmail page layouts, unloaded messages, repeated scans | Not handled yet; page extraction and email deduplication belong to the Gmail integration milestone. |
 
 ### Optional syntax checks
 
@@ -122,6 +158,7 @@ With Node.js installed, run these from the repository root:
 ```sh
 node --check Extension/JS/storage.js
 node --check Extension/JS/sender-model.js
+node --check Extension/JS/matching.js
 node --check Extension/JS/popup.js
 ```
 
@@ -144,10 +181,10 @@ These check JavaScript syntax only. They do not test browser APIs, rendering, or
 ## Next milestones
 
 1. Verify native drag-and-drop and keyboard reordering in Edge using the checklist above.
-2. Optional subject-keyword rules and matching tests using sample emails.
+2. Verify sample matching and saved-rule editing in Edge using the checks above.
 3. Gmail page reading to extract a sender and subject from an opened email.
 4. Recent matches and notifications.
 5. A small local backend and SQL database for matching records and tracking history.
-6. Automated tests and a GitHub Actions pipeline.
+6. Connect the automated test suite to a GitHub Actions pipeline.
 
 Future Gmail page reading will depend on Gmail being open and loading the relevant content. Gmail interface changes may require changes to the reader. Background monitoring with Gmail closed is outside the current design.
